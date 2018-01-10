@@ -11,17 +11,23 @@ import time
 from datetime import datetime
 import pickle
 import sys
+import os
+
+if os.path.exists('ridedata'):
+    ride_data = pickle.load(open('ridedata', 'rb'))
+else:
+    ride_data = {}
 
 sys.setrecursionlimit(5000)
 
-
-locations = []
-times = []
-ride_data = {}
 loops = 5
 counter = 0
 
 while loops != counter:
+    
+    locations = []
+    times = []
+    
     html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content
     soup = BeautifulSoup(html, 'lxml')
     
