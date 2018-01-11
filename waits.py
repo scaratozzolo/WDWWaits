@@ -16,11 +16,13 @@ import os
 
 if not os.path.exists('checkpoints'):               #checks for checkpoints directory and creates it
     os.makedirs('checkpoints')
+    os.makedirs('checkpoints/ridedata')
+    os.makedirs('checkpoints/bylocation')
 
 if os.path.exists('checkpoints'):                   #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
-    file_list = os.listdir('checkpoints')               
+    file_list = os.listdir('checkpoints/ridedata')               
     if len(file_list) != 0:
-        with open('checkpoints/{}'.format(file_list[len(file_list)-1]), 'r') as f:
+        with open('checkpoints/ridedata/{}'.format(file_list[len(file_list)-1]), 'r') as f:
             ride_data = json.load(f)
     else:
         ride_data = {}                              #if it doesn't exist, ride_data is an empty dictionary
@@ -78,11 +80,26 @@ def get_data():
         counter += 1
 #         print(ride_data)
 
-        with open('checkpoints/ridedata-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
+        with open('checkpoints/ridedata/ridedata-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
             json.dump(ride_data, f)
         
         
         if datetime.now().hour < 6:                #if time is midnight, waits until 6 am to start again
+            
+            location_data = {}
+
+            for key in ride_data:
+                if ride_data[key]["Location"] in location_data:
+                    location_data[ride_data[key]["Location"]][key] = {}
+                    location_data[ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
+                else:
+                    location_data[ride_data[key]["Location"]] = {}
+                    location_data[ride_data[key]["Location"]][key] = {}
+                    location_data[ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
+                    
+            with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
+                json.dump(location_data, f)
+            
             print('All parks closed at {}:{} '.format(datetime.now().hour, datetime.now().minute))
             time.sleep((6-datetime.now().hour)*3600)
             print('Parks opening soon: {}:{}'.format(datetime.now().hour, datetime.now().minute))
