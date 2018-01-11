@@ -10,53 +10,43 @@ import time
 from datetime import datetime
 # import pickle
 import json
-# import sys
 import os
+
+
 
 if not os.path.exists('checkpoints'):               #checks for SaveData directory and creates it
     os.makedirs('checkpoints')
 
 if os.path.exists('checkpoints'):                   #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
-    list = os.listdir('checkpoints')               
-    if len(list) != 0:
-        with open('checkpoints/{}'.format(list[len(list)-1]), 'r') as f:
+    file_list = os.listdir('checkpoints')               
+    if len(file_list) != 0:
+        with open('checkpoints/{}'.format(file_list[len(file_list)-1]), 'r') as f:
             ride_data = json.load(f)
     else:
         ride_data = {}                              #if it doesn't exist, ride_data is an empty dictionary
 
 
-# sys.setrecursionlimit(5000)
-
 PAUSE_TIME = 10                                     #pause time between wait time gathering in minutes
 
 def get_data():
-    
-    YEAR = datetime.now().year
-    MONTH = datetime.now().month
-    DAY = datetime.now().day
     
     print('Waiting for 10 minute interval...')
     while True:                                     #waits until the time is an interval of 15 minutes
         if datetime.now().minute % PAUSE_TIME == 0:
             break
-           
+            
         time.sleep(2)
 
     counter = 1
     while True:                                     #main program
-#     for _ in range(5):
+
         rides = []
         locations = []
         times = []
-        
-        
-        if datetime.now().hour < 6:                #if time is midnight, waits until 7 am to start again
-            print('All parks closed at {}:{} '.format(datetime.now().hour, datetime.now().minute))
-            time.sleep((6-datetime.now().hour)*3600)
-            print('Parks opening soon: {}:{}'.format(datetime.now().hour, datetime.now().minute))
-            YEAR = datetime.now().year
-            MONTH = datetime.now().month
-            DAY = datetime.now().day
+            
+        YEAR = datetime.now().year
+        MONTH = datetime.now().month
+        DAY = datetime.now().day
             
         
         html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content   #get webpage content
@@ -78,10 +68,11 @@ def get_data():
             elif (i+1) % 3 == 0:
                 times.append(int(elm.string.strip()[:-4]))
         
-#         print(len(rides), len(locations), len(times))   
-        for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
-            ride_data[ride]['Times'][str(datetime.now())] = times[i]
-            ride_data[ride]['Location'] = locations[i]
+#         print(len(rides), len(locations), len(times))
+        if len(rides) != 0:   
+            for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
+                ride_data[ride]['Times'][str(datetime.now())] = times[i]
+                ride_data[ride]['Location'] = locations[i]
         
         print('{}. New data added at {}'.format(counter, datetime.now()))
         counter += 1
@@ -89,9 +80,14 @@ def get_data():
 
         with open('checkpoints/ridedata-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
             json.dump(ride_data, f)
-#         pickle.dump(ride_data, open('ridedata.p', 'wb'))
         
-        time.sleep(PAUSE_TIME*60)                             #waits 10 minutes before starting again
+        
+        if datetime.now().hour < 6:                #if time is midnight, waits until 6 am to start again
+            print('All parks closed at {}:{} '.format(datetime.now().hour, datetime.now().minute))
+            time.sleep((6-datetime.now().hour)*3600)
+            print('Parks opening soon: {}:{}'.format(datetime.now().hour, datetime.now().minute))
+        else:
+            time.sleep(PAUSE_TIME*60)                             #waits 10 minutes before starting again
 
 
 if __name__ == '__main__':
