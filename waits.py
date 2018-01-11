@@ -72,7 +72,9 @@ def get_data():
             json.dump(ride_data, f)
 #         pickle.dump(ride_data, open('ridedata.p', 'wb'))
         if datetime.now().hour == 0:                #if time is midnight, waits until 7 am to start again, otherwise waits 15 minutes
+            print('All parks closed')
             time.sleep(25200)
+            print('Parks opening soon')
         else:
             time.sleep(900)
 
