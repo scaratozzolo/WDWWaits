@@ -40,6 +40,11 @@ def get_data():
         locations = []
         times = []
         
+        if datetime.now().hour < 7:                #if time is midnight, waits until 7 am to start again
+            print('All parks closed')
+            time.sleep((7-datetime.now().hour)*3600)
+            print('Parks opening soon')
+        
         html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content   #get webpage content
         soup = BeautifulSoup(html, 'lxml')          #parse the webpage
         
@@ -71,12 +76,8 @@ def get_data():
         with open('ridedata.json', 'w') as f:       #writes ride_data to json file
             json.dump(ride_data, f)
 #         pickle.dump(ride_data, open('ridedata.p', 'wb'))
-        if datetime.now().hour == 0:                #if time is midnight, waits until 7 am to start again, otherwise waits 15 minutes
-            print('All parks closed')
-            time.sleep(25200)
-            print('Parks opening soon')
-        else:
-            time.sleep(900)
+        
+        time.sleep(900)                             #waits 15 minutes before starting again
 
 
 if __name__ == '__main__':
