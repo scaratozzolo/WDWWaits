@@ -29,15 +29,16 @@ if os.path.exists('checkpoints'):                   #checks for ride_data.json a
 
 
 PAUSE_TIME = 10                                     #pause time between wait time gathering in minutes
+WAIT_INTERVAL = 15
 
 def get_data():
     
-#     print('Waiting for 10 minute interval...')
-#     while True:                                     #waits until the time is an interval of 15 minutes
-#         if datetime.now().minute % PAUSE_TIME == 0:
-#             break
-#             
-#         time.sleep(2)
+    print('Waiting for 15 minute interval...')
+    while True:                                     #waits until the time is an interval of 15 minutes
+        if datetime.now().minute % WAIT_INTERVAL == 0:
+            break
+             
+        time.sleep(2)
 
     counter = 1
     while True:                                     #main program
