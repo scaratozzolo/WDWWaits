@@ -25,6 +25,13 @@ sys.setrecursionlimit(5000)
 
 
 def get_data():
+    
+    print('Waiting for 15 minute interval...')
+    while True:
+        if datetime.now().minute % 15 == 0:
+            break
+          
+        time.sleep(5)
 
     counter = 1
     while True:
@@ -52,7 +59,7 @@ def get_data():
             elif (i+1) % 3 == 0:
                 times.append(int(elm.string.strip()[:-4]))
         
-            
+#         print(len(rides), len(locations), len(times))   
         for i, ride in enumerate(rides):
             ride_data[ride]['Times'][str(datetime.now())] = times[i]
             ride_data[ride]['Location'] = locations[i]
@@ -68,12 +75,6 @@ def get_data():
 
 
 if __name__ == '__main__':
-    print('Waiting for 15 minute interval...')
-    while True:
-        if datetime.now().minute % 15 == 0:
-            break
-          
-        time.sleep(15)
     try:
         print('Starting')
         get_data()
