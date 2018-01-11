@@ -14,7 +14,7 @@ import os
 
 
 
-if not os.path.exists('checkpoints'):               #checks for SaveData directory and creates it
+if not os.path.exists('checkpoints'):               #checks for checkpoints directory and creates it
     os.makedirs('checkpoints')
 
 if os.path.exists('checkpoints'):                   #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
@@ -30,12 +30,12 @@ PAUSE_TIME = 10                                     #pause time between wait tim
 
 def get_data():
     
-    print('Waiting for 10 minute interval...')
-    while True:                                     #waits until the time is an interval of 15 minutes
-        if datetime.now().minute % PAUSE_TIME == 0:
-            break
-            
-        time.sleep(2)
+#     print('Waiting for 10 minute interval...')
+#     while True:                                     #waits until the time is an interval of 15 minutes
+#         if datetime.now().minute % PAUSE_TIME == 0:
+#             break
+#             
+#         time.sleep(2)
 
     counter = 1
     while True:                                     #main program
