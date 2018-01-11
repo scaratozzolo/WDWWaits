@@ -3,19 +3,19 @@ Created on Jan 10, 2018
 
 @author: Scott Caratozzolo
 
-I pledge my honor that I have abided by the Stevens Honor System - scaratoz
 '''
 from bs4 import BeautifulSoup
 import requests
 import time
 from datetime import datetime
-import pickle
+# import pickle
 import json
 import sys
 import os
 
-if os.path.exists('ridedata.p'):
-    ride_data = pickle.load(open('ridedata.p', 'rb'))
+if os.path.exists('ridedata.json'):
+    with open('ridedata.json', 'r') as f:
+        ride_data = json.load(f)
 else:
     ride_data = {}
 
@@ -26,8 +26,9 @@ sys.setrecursionlimit(5000)
 
 def get_data():
 
-
-    for _ in range(5):
+    counter = 1
+    while True:
+#     for _ in range(5):
         rides = []
         locations = []
         times = []
@@ -56,21 +57,27 @@ def get_data():
             ride_data[ride]['Times'][str(datetime.now())] = times[i]
             ride_data[ride]['Location'] = locations[i]
         
-        print(datetime.now())
-        print(ride_data)
+        print('{}. New data added at {}'.format(counter, datetime.now()))
+        counter += 1
+#         print(ride_data)
 
         with open('ridedata.json', 'w') as f:
             json.dump(ride_data, f)
-        pickle.dump(ride_data, open('ridedata.p', 'wb'))
+#         pickle.dump(ride_data, open('ridedata.p', 'wb'))
         time.sleep(900)
 
 
 if __name__ == '__main__':
-#     while True:
-#         if datetime.now().minute % 15 == 0:
-#             get_data()
-#             break
-#         
-#         time.sleep(60)
-
-    get_data()
+    print('Waiting for 15 minute interval...')
+    while True:
+        if datetime.now().minute % 15 == 0:
+            break
+          
+        time.sleep(15)
+    try:
+        print('Starting')
+        get_data()
+    except KeyboardInterrupt:
+        print('Keyboard Interruption, program ended')
+        
+        
