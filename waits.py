@@ -22,16 +22,16 @@ else:
 
 # sys.setrecursionlimit(5000)
 
-
+PAUSE_TIME = 10                                     #pause time between wait time gathering in minutes
 
 def get_data():
     
     print('Waiting for 15 minute interval...')
     while True:                                     #waits until the time is an interval of 15 minutes
-        if datetime.now().minute % 15 == 0:
+        if datetime.now().minute % PAUSE_TIME == 0:
             break
           
-        time.sleep(5)
+        time.sleep(2)
 
     counter = 1
     while True:                                     #main program
@@ -77,7 +77,7 @@ def get_data():
             json.dump(ride_data, f)
 #         pickle.dump(ride_data, open('ridedata.p', 'wb'))
         
-        time.sleep(900)                             #waits 15 minutes before starting again
+        time.sleep(PAUSE_TIME*60)                             #waits 10 minutes before starting again
 
 
 if __name__ == '__main__':
