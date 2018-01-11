@@ -35,12 +35,12 @@ def get_data():
     MONTH = datetime.now().month
     DAY = datetime.now().day
     
-#     print('Waiting for 10 minute interval...')
-#     while True:                                     #waits until the time is an interval of 15 minutes
-#         if datetime.now().minute % PAUSE_TIME == 0:
-#             break
-#           
-#         time.sleep(2)
+    print('Waiting for 10 minute interval...')
+    while True:                                     #waits until the time is an interval of 15 minutes
+        if datetime.now().minute % PAUSE_TIME == 0:
+            break
+           
+        time.sleep(2)
 
     counter = 1
     while True:                                     #main program
