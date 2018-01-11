@@ -10,14 +10,19 @@ import time
 from datetime import datetime
 # import pickle
 import json
-import sys
+# import sys
 import os
 
-if os.path.exists('ridedata.json'):                 #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
-    with open('ridedata.json', 'r') as f:
-        ride_data = json.load(f)
-else:
-    ride_data = {}                                  #if it doesn't exist, ride_data is an empty dictionary
+if not os.path.exists('checkpoints'):               #checks for SaveData directory and creates it
+    os.makedirs('checkpoints')
+
+if os.path.exists('checkpoints'):                   #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
+    list = os.listdir('checkpoints')               
+    if len(list) != 0:
+        with open('checkpoints/{}'.format(list[len(list)-1]), 'r') as f:
+            ride_data = json.load(f)
+    else:
+        ride_data = {}                              #if it doesn't exist, ride_data is an empty dictionary
 
 
 # sys.setrecursionlimit(5000)
@@ -26,12 +31,16 @@ PAUSE_TIME = 10                                     #pause time between wait tim
 
 def get_data():
     
-    print('Waiting for 15 minute interval...')
-    while True:                                     #waits until the time is an interval of 15 minutes
-        if datetime.now().minute % PAUSE_TIME == 0:
-            break
-          
-        time.sleep(2)
+    YEAR = datetime.now().year
+    MONTH = datetime.now().month
+    DAY = datetime.now().day
+    
+#     print('Waiting for 10 minute interval...')
+#     while True:                                     #waits until the time is an interval of 15 minutes
+#         if datetime.now().minute % PAUSE_TIME == 0:
+#             break
+#           
+#         time.sleep(2)
 
     counter = 1
     while True:                                     #main program
@@ -40,10 +49,15 @@ def get_data():
         locations = []
         times = []
         
-        if datetime.now().hour < 7:                #if time is midnight, waits until 7 am to start again
-            print('All parks closed')
-            time.sleep((7-datetime.now().hour)*3600)
-            print('Parks opening soon')
+        
+        if datetime.now().hour < 6:                #if time is midnight, waits until 7 am to start again
+            print('All parks closed at {}:{} '.format(datetime.now().hour, datetime.now().minute))
+            time.sleep((6-datetime.now().hour)*3600)
+            print('Parks opening soon: {}:{}'.format(datetime.now().hour, datetime.now().minute))
+            YEAR = datetime.now().year
+            MONTH = datetime.now().month
+            DAY = datetime.now().day
+            
         
         html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content   #get webpage content
         soup = BeautifulSoup(html, 'lxml')          #parse the webpage
@@ -73,7 +87,7 @@ def get_data():
         counter += 1
 #         print(ride_data)
 
-        with open('ridedata.json', 'w') as f:       #writes ride_data to json file
+        with open('checkpoints/ridedata-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
             json.dump(ride_data, f)
 #         pickle.dump(ride_data, open('ridedata.p', 'wb'))
         
