@@ -13,39 +13,39 @@ import json
 import sys
 import os
 
-if os.path.exists('ridedata.json'):
+if os.path.exists('ridedata.json'):                 #checks for ride_data.json and loads it to ride_data as a dictionary if it exists
     with open('ridedata.json', 'r') as f:
         ride_data = json.load(f)
 else:
-    ride_data = {}
+    ride_data = {}                                  #if it doesn't exist, ride_data is an empty dictionary
 
 
-sys.setrecursionlimit(5000)
+# sys.setrecursionlimit(5000)
 
 
 
 def get_data():
     
     print('Waiting for 15 minute interval...')
-    while True:
+    while True:                                     #waits until the time is an interval of 15 minutes
         if datetime.now().minute % 15 == 0:
             break
           
         time.sleep(5)
 
     counter = 1
-    while True:
+    while True:                                     #main program
 #     for _ in range(5):
         rides = []
         locations = []
         times = []
         
-        html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content
-        soup = BeautifulSoup(html, 'lxml')
+        html = requests.get('https://www.easywdw.com/waits/?&park=All&sort=time&showOther=false').content   #get webpage content
+        soup = BeautifulSoup(html, 'lxml')          #parse the webpage
         
         all_h2 = soup.find_all('h2')
         
-        for i, elm in enumerate(all_h2[:-2]):
+        for i, elm in enumerate(all_h2[:-2]):       #for every h2 tag in page, determines if it is a ride, location, or time and adds it to a list so they all have the same index
             if elm.string == 'Ride' or elm.string == 'Location' or elm.string == 'Time':
                 continue
             elif (i+1) % 3 == 1:
@@ -60,7 +60,7 @@ def get_data():
                 times.append(int(elm.string.strip()[:-4]))
         
 #         print(len(rides), len(locations), len(times))   
-        for i, ride in enumerate(rides):
+        for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
             ride_data[ride]['Times'][str(datetime.now())] = times[i]
             ride_data[ride]['Location'] = locations[i]
         
@@ -68,10 +68,13 @@ def get_data():
         counter += 1
 #         print(ride_data)
 
-        with open('ridedata.json', 'w') as f:
+        with open('ridedata.json', 'w') as f:       #writes ride_data to json file
             json.dump(ride_data, f)
 #         pickle.dump(ride_data, open('ridedata.p', 'wb'))
-        time.sleep(900)
+        if datetime.now().hour == 0:                #if time is midnight, waits until 7 am to start again, otherwise waits 15 minutes
+            time.sleep(25200)
+        else:
+            time.sleep(900)
 
 
 if __name__ == '__main__':
