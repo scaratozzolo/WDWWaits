@@ -1,4 +1,8 @@
 # WDWWaits
-By using the information given by [EasyWDW](https://www.easywdw.com/waits), I can create a data set of rides and wait times periodically throughout the day. Using this data set I can do some basic analytics.
+Things are changing 
+accessing directly to disney even though they probably dont like that
 
-The script uses beautifulsoup4 to parse the webpage for the ride, location, and wait time data.
+epcot id : 80007838
+lists of restauarants: https://disneyworld.disney.go.com/api/wdpro/bulk-service/snapshot/WDW-finder-restaurant
+gets everything about park: https://api.wdpro.disney.go.com/facility-service/theme-parks/80007838
+add '/wait-times' for just wait times
