@@ -35,12 +35,12 @@ WAIT_INTERVAL = 15
 
 def get_data():
     
-    print('Waiting for 15 minute interval...')
-    while True:                                     #waits until the time is an interval of 15 minutes
-        if datetime.now().minute % WAIT_INTERVAL == 0:
-            break
-              
-        time.sleep(2)
+#     print('Waiting for 15 minute interval...')
+#     while True:                                     #waits until the time is an interval of 15 minutes
+#         if datetime.now().minute % WAIT_INTERVAL == 0:
+#             break
+#               
+#         time.sleep(2)
 
     counter = 1
     while True:                                     #main program
@@ -52,6 +52,7 @@ def get_data():
         rides = []
         locations = []
         times = []
+        parks = []
             
         YEAR = datetime.now().year
         MONTH = datetime.now().month
@@ -65,29 +66,28 @@ def get_data():
             
             for i in range(len(data['entries'])):
                 if 'postedWaitMinutes' in data['entries'][i]['waitTime']:
-                    try:
-                        rides.append(data['entries'][i]['name'])
-                        times.append(data['entries'][i]['waitTime']['postedWaitMinutes'])
-                        if data['entries'][i]['type'] == 'Attraction':
-                            q = requests.get("https://api.wdpro.disney.go.com/facility-service/attractions/{}".format(data['entries'][i]['id']), headers=headers)
-                            ride_info = json.loads(q.content)
-                            locations.append(ride_info['links']['ancestorLand']['title'])
-                        else:
-                            locations.append(park)
-                        
-                    except:
-                        print('Link for {} not found'.format(data['entries'][i]['name']))
-        
-#         print(len(rides), len(locations), len(times))
+                    rides.append(data['entries'][i]['name'])
+                    times.append(data['entries'][i]['waitTime']['postedWaitMinutes'])
+                    parks.append(park)
+                    if data['entries'][i]['type'] == 'Attraction':
+                        q = requests.get("https://api.wdpro.disney.go.com/facility-service/attractions/{}".format(data['entries'][i]['id']), headers=headers)
+                        ride_info = json.loads(q.content)
+                        locations.append(ride_info['links']['ancestorLand']['title'])
+                    else:
+                        locations.append(park)
+
+#         print(len(rides), len(locations), len(times), len(parks))
         if len(rides) != 0:   
             for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
                 if ride in ride_data:
                     ride_data[ride]['Times'][str(datetime.now())] = times[i]
                     ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
+                    ride_data[ride]['Park'] = parks[i]
                 else:
                     ride_data[ride] = {'Times' : {}}
                     ride_data[ride]['Times'][str(datetime.now())] = times[i]
                     ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
+                    ride_data[ride]['Park'] = parks[i]
         
         print('{}. New data added at {}'.format(counter, datetime.now()))
         counter += 1
@@ -101,13 +101,19 @@ def get_data():
             location_data = {}
  
             for key in ride_data:
-                if ride_data[key]["Location"] in location_data:
-                    location_data[ride_data[key]["Location"]][key] = {}
-                    location_data[ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
+                if ride_data[key]["Park"] in location_data:
+                    if ride_data[key]['Location'] in location_data[ride_data[key]["Park"]]:
+                        location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
+                        location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
+                    else:
+                        location_data[ride_data[key]["Park"]][ride_data[key]["Location"]] = {}
+                        location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
+                        location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
                 else:
-                    location_data[ride_data[key]["Location"]] = {}
-                    location_data[ride_data[key]["Location"]][key] = {}
-                    location_data[ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
+                    location_data[ride_data[key]["Park"]] = {}
+                    location_data[ride_data[key]["Park"]][ride_data[key]["Location"]] = {}
+                    location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
+                    location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
                      
             with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
                 json.dump(location_data, f)
