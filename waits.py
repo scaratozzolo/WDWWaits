@@ -34,7 +34,10 @@ def get_data():
 
     counter = 1
     while True:
-        parkopen, parkclose = park_hours()
+        TODAY = datetime.today()
+        TOMORROW = datetime.today() + timedelta(days=1)
+
+        parkopen, parkclose = park_hours(TODAY.year, TODAY.month, TODAY.day)
 
         raw_attractions = load_attractions()
         attractions = []
@@ -101,9 +104,9 @@ def get_data():
                     with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
                         json.dump(location_data, f)
 
-                    tomorrowopen, _ = park_hours(False)
+                    tomorrowopen, _ = park_hours(TOMORROW.year, TOMORROW.month, TOMORROW.day)
 
-                    print('All parks are closed at {}:{}. They will reopen at {}:{}'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, tomorrowopen.minute))
+                    print('All parks are closed at {}:{}. They will reopen at {}:{}.'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, formatDate(tomorrowopen.minute)))
                     time_to_open = tomorrowopen - datetime.now()
                     for _ in tqdm(range(time_to_open.seconds)):
                         time.sleep(1)
@@ -115,26 +118,18 @@ def get_data():
                 print("Wait Time Error")
 
 
-def park_hours(today = True):
-    if today:
-        print("Getting park hours...")
-        parkopen = datetime.today()
-        parkclose = datetime.today()
-    else:
-        parkopen = datetime.today() + timedelta(days=1)
-        parkclose = datetime.today() + timedelta(days=1)
-        TOMORROW = datetime.today() + timedelta(days=1)
+def park_hours(year, month, day):
+    print("Getting park hours...")
+    DATE = datetime(year, month, day)
+    parkopen = datetime(DATE.year, DATE.month, DATE.day, 9)
+    parkclose = datetime(DATE.year, DATE.month, DATE.day, 19)
 
     wdw = Destination("80007798")
     dl = Destination("80008297")
     parks = wdw.getThemeParks() + wdw.getWaterParks() + dl.getThemeParks()
 
     for park in tqdm(parks):
-        if today:
-            hours = park.getTodayParkHours()
-        else:
-            hours = park.getParkHours(TOMORROW.year, TOMORROW.month, TOMORROW.day)
-
+        hours = park.getParkHours(year, month, day)
         if hours[2] != None:
             if hours[2] < parkopen:
                 parkopen = hours[2]
@@ -165,6 +160,10 @@ def formatDate(num):
     return num
 
 if __name__ == "__main__":
+    """
+    California is 3 hours behind us...do something about it.
+    Possibly "check for wait time" after every iteration to make sure we're only getting attractions with wait times
+    """
     print('Starting')
     while True:
         try:
