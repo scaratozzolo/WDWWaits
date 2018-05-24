@@ -40,14 +40,16 @@ def get_data():
         parkopen, parkclose = park_hours(TODAY.year, TODAY.month, TODAY.day)
 
         raw_attractions = load_attractions()
-        attractions = []
-        print("Checking for attractions with wait times...")
-        for attr in tqdm(raw_attractions):
-            if attr.checkForAttractionWaitTime():
-                attractions.append(attr)
 
         while True:
             try:
+
+                attractions = []
+                print("Checking for attractions with wait times...")
+                for attr in tqdm(raw_attractions):
+                    if attr.checkForAttractionWaitTime():
+                        attractions.append(attr)
+
                 rides = []
                 locations = []
                 times = []
@@ -56,6 +58,7 @@ def get_data():
                 YEAR = datetime.today().year
                 MONTH = datetime.today().month
                 DAY = datetime.today().day
+                NOW = datetime.now()
 
                 print("Getting wait times...")
                 for attr in tqdm(attractions):
@@ -68,12 +71,12 @@ def get_data():
                     print('Adding new data...')
                     for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
                         if ride in ride_data:
-                            ride_data[ride]['Times'][str(datetime.now())] = times[i]
+                            ride_data[ride]['Times'][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = times[i]
                             ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
                             ride_data[ride]['Park'] = parks[i]
                         else:
                             ride_data[ride] = {'Times' : {}}
-                            ride_data[ride]['Times'][str(datetime.now())] = times[i]
+                            ride_data[ride]['Times'][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = times[i]
                             ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
                             ride_data[ride]['Park'] = parks[i]
                 print('{}. Finsihed at {}'.format(counter, datetime.now()))
@@ -125,8 +128,8 @@ def park_hours(year, month, day):
     parkclose = datetime(DATE.year, DATE.month, DATE.day, 19)
 
     wdw = Destination("80007798")
-    dl = Destination("80008297")
-    parks = wdw.getThemeParks() + wdw.getWaterParks() + dl.getThemeParks()
+    #dl = Destination("80008297")
+    parks = wdw.getThemeParks() + wdw.getWaterParks() #+ dl.getThemeParks()
 
     for park in tqdm(parks):
         hours = park.getParkHours(year, month, day)
@@ -145,10 +148,13 @@ def park_hours(year, month, day):
     return parkopen, parkclose
 
 def load_attractions():
+    """
+    in API get all attractions for a park, store all attractions per par in variables, depending on time of day (specific park hours) change the list
+    """
     print("Loading attractions...")
     wdw = Destination("80007798")
-    dl = Destination("80008297")
-    attractions = wdw.getAttractions() + dl.getAttractions()
+    #dl = Destination("80008297")
+    attractions = wdw.getAttractions() #+ dl.getAttractions()
     return attractions
 
 def formatDate(num):
