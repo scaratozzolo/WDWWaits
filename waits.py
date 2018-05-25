@@ -30,23 +30,32 @@ if os.path.exists('checkpoints'):                   #checks for ride_data.json a
 
 PAUSE_TIME = 15                                     #pause time between wait time gathering in minutes
 
+wdw = Destination("80007798")
+dl = Destination("80008297")
+parks_dict = {}
+
 def get_data():
 
     counter = 1
     while True:
+        global parks_dict
+        parks_dict = {"WDW": wdw.getThemeParks() + wdw.getWaterParks(), "DL": dl.getThemeParks()}
+
         TODAY = datetime.today()
         TOMORROW = datetime.today() + timedelta(days=1)
 
-        parkopen, parkclose = park_hours(TODAY.year, TODAY.month, TODAY.day)
+        parkopen, parkclose = all_hours(TODAY.year, TODAY.month, TODAY.day)
 
-        raw_attractions = load_attractions()
+        raw_attractions = load_all_attractions()
 
         while True:
             try:
 
+                all_attractions = load_attractions(raw_attractions)
+
                 attractions = []
                 print("Checking for attractions with wait times...")
-                for attr in tqdm(raw_attractions):
+                for attr in tqdm(all_attractions):
                     if attr.checkForAttractionWaitTime():
                         attractions.append(attr)
 
@@ -107,9 +116,13 @@ def get_data():
                     with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(YEAR, MONTH, DAY), 'w') as f:       #writes ride_data to json file
                         json.dump(location_data, f)
 
-                    tomorrowopen, _ = park_hours(TOMORROW.year, TOMORROW.month, TOMORROW.day)
+                    NOW = datetime.now()
+                    if TODAY.month == NOW.month and TODAY.day == NOW.day and NOW.hour < 7:  #may need to adjust hour
+                        tomorrowopen, _ = all_hours(TODAY.year, TODAY.month, TODAY.day)
+                    else:
+                        tomorrowopen, _ = all_hours(TOMORROW.year, TOMORROW.month, TOMORROW.day)
 
-                    print('All parks are closed at {}:{}. They will reopen at {}:{}.'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, formatDate(tomorrowopen.minute)))
+                    print('All parks are closed at {}:{}. They will reopen at {}:{}.'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, formatDate(str(tomorrowopen.minute))))
                     time_to_open = tomorrowopen - datetime.now()
                     for _ in tqdm(range(time_to_open.seconds)):
                         time.sleep(1)
@@ -117,49 +130,134 @@ def get_data():
                 else:
                     for _ in tqdm(range(PAUSE_TIME*60)):
                         time.sleep(1)
-            except:
+            except Exception as e:
+                print(e)
                 print("Wait Time Error")
 
 
-def park_hours(year, month, day):
+def all_hours(year, month, day):
     print("Getting park hours...")
     DATE = datetime(year, month, day)
     parkopen = datetime(DATE.year, DATE.month, DATE.day, 9)
     parkclose = datetime(DATE.year, DATE.month, DATE.day, 19)
 
-    wdw = Destination("80007798")
-    #dl = Destination("80008297")
-    parks = wdw.getThemeParks() + wdw.getWaterParks() #+ dl.getThemeParks()
+    parks = parks_dict["WDW"] + parks_dict["DL"]
 
     for park in tqdm(parks):
-        hours = park.getParkHours(year, month, day)
-        if hours[2] != None:
-            if hours[2] < parkopen:
-                parkopen = hours[2]
-        if hours[0] < parkopen:
-            parkopen = hours[0]
+        for item in parks_dict["WDW"]:
+            if park == item:
+                hours = park.getParkHours(year, month, day)
+                if hours[2] != None:
+                    if hours[2] < parkopen:
+                        parkopen = hours[2]
+                if hours[0] < parkopen:
+                    parkopen = hours[0]
 
-        if hours[3] != None:
-            if hours[3] > parkclose:
-                parkclose = hours[3]
-        if hours[1] > parkclose:
-            parkclose = hours[1]
+                if hours[3] != None:
+                    if hours[3] > parkclose:
+                        parkclose = hours[3]
+                if hours[1] > parkclose:
+                    parkclose = hours[1]
+
+        for item in parks_dict["DL"]:
+            if park == item:
+                hours = park.getParkHours(year, month, day)
+                if hours[2] != None:
+                    if hours[2] + timedelta(hours=3) < parkopen:
+                        parkopen = hours[2] + timedelta(hours=3)
+                if hours[0] + timedelta(hours=3) < parkopen:
+                    parkopen = hours[0] + timedelta(hours=3)
+
+                if hours[3] != None:
+                    if hours[3] + timedelta(hours=3) > parkclose:
+                        parkclose = hours[3] + timedelta(hours=3)
+                if hours[1] + timedelta(hours=3) > parkclose:
+                    parkclose = hours[1] + timedelta(hours=3)
 
     return parkopen, parkclose
 
-def load_attractions():
+def park_hours(park, year, month, day):
+    DATE = datetime(year, month, day)
+
+    for item in parks_dict["WDW"]:
+        if park == item:
+            parkopen = datetime(DATE.year, DATE.month, DATE.day, 9)
+            parkclose = datetime(DATE.year, DATE.month, DATE.day, 19)
+
+            hours = park.getParkHours(year, month, day)
+            if hours[2] != None:
+                if hours[2] < parkopen:
+                    parkopen = hours[2]
+            if hours[0] < parkopen:
+                parkopen = hours[0]
+
+            if hours[3] != None:
+                if hours[3] > parkclose:
+                    parkclose = hours[3]
+            if hours[1] > parkclose:
+                parkclose = hours[1]
+
+    for item in parks_dict["DL"]:
+        if park == item:
+            parkopen = datetime(DATE.year, DATE.month, DATE.day, 9) + timedelta(hours=3)
+            parkclose = datetime(DATE.year, DATE.month, DATE.day, 19) + timedelta(hours=3)
+            hours = park.getParkHours(year, month, day)
+            if hours[2] != None:
+                if hours[2] + timedelta(hours=3) < parkopen:
+                    parkopen = hours[2] + timedelta(hours=3)
+            if hours[0] + timedelta(hours=3) < parkopen:
+                parkopen = hours[0] + timedelta(hours=3)
+
+            if hours[3] != None:
+                if hours[3] + timedelta(hours=3) > parkclose:
+                    parkclose = hours[3] + timedelta(hours=3)
+            if hours[1] + timedelta(hours=3) > parkclose:
+                parkclose = hours[1] + timedelta(hours=3)
+
+    return parkopen, parkclose
+
+def load_all_attractions():
     """
-    in API get all attractions for a park, store all attractions per par in variables, depending on time of day (specific park hours) change the list
+    in API get all attractions for a park, store all attractions per park in variables, depending on time of day (specific park hours) change the list
     """
     print("Loading attractions...")
+    raw_attractions = {}
     wdw = Destination("80007798")
-    #dl = Destination("80008297")
-    attractions = wdw.getAttractions() #+ dl.getAttractions()
+    dl = Destination("80008297")
+    attractions = wdw.getAttractions() + dl.getAttractions()
+
+    for attr in attractions:
+        park = attr.getAncestorThemeParkID()
+        if park != None:
+            if park in raw_attractions:
+                raw_attractions[park].append(attr)
+            else:
+                raw_attractions[park] = [attr]
+
+    return raw_attractions
+
+def load_attractions(raw_attractions):
+
+    DATE = datetime.today()
+    attractions = []
+
+    open = 0
+    for theme in tqdm(raw_attractions):
+        try:
+            park = Park(theme)
+            parkopen, parkclose = park_hours(park, DATE.year, DATE.month, DATE.day)
+            if datetime.now() > parkopen and datetime.now() <= parkclose:
+                attractions += raw_attractions[theme]
+                open+=1
+        except:
+            pass
+    print("{} parks open right now...".format(open))
     return attractions
+
 
 def formatDate(num):
     """
-    Formats month and day into proper format
+    Formats numbers into 2 digit strings
     """
     if len(num) < 2:
         num = '0'+num
@@ -168,7 +266,6 @@ def formatDate(num):
 if __name__ == "__main__":
     """
     California is 3 hours behind us...do something about it.
-    Possibly "check for wait time" after every iteration to make sure we're only getting attractions with wait times
     """
     print('Starting')
     while True:
@@ -180,6 +277,7 @@ if __name__ == "__main__":
         except ConnectionError:
             print("Couldn't get new data")
             time.sleep(PAUSE_TIME*60)
-        except Exception:
+        except Exception as e:
+            # print(e)
             print("Attraction Error")
             print("Restarting...")
