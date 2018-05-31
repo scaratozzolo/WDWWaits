@@ -6,12 +6,12 @@ from MouseTools.destinations import Destination
 from MouseTools.parks import Park
 from MouseTools.attractions import Attraction
 from MouseTools.entertainments import Entertainment
+from tqdm import tqdm
+from datetime import datetime, timedelta
 import requests
 import time
-from datetime import datetime, timedelta
 import json
 import os
-from tqdm import tqdm
 
 destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
 
@@ -122,11 +122,12 @@ def get_data():
                 with open('checkpoints/ridedata/ridedata-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
                     json.dump(ride_data, f)
 
-                if datetime.now() < parkopen or datetime.now() >= parkclose:
+                # if datetime.now() < parkopen or datetime.now() >= parkclose:
+                if datetime(2018, 6, 1, 4) < parkopen or datetime(2018, 6, 1, 4) >= parkclose:
                     location_data = {}
 
                     for key in ride_data:
-                        if key != "Orlando" or key != "Anaheim":
+                        if key != "Orlando" and key != "Anaheim":
                             if ride_data[key]["Park"] in location_data:
                                 if ride_data[key]['Location'] in location_data[ride_data[key]["Park"]]:
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
@@ -148,6 +149,10 @@ def get_data():
 
                     with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
                         json.dump(location_data, f)
+
+                    os.system("git add checkpoints")
+                    os.system("git commit -m 'Newest data'")
+                    os.system("git push")
 
                     NOW = datetime.now()
                     if TODAY.month == NOW.month and TODAY.day == NOW.day and NOW.hour < 7:  #may need to adjust hour
