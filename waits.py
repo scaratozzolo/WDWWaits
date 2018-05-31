@@ -123,7 +123,7 @@ def get_data():
                     json.dump(ride_data, f)
 
                 # if datetime.now() < parkopen or datetime.now() >= parkclose:
-                if datetime(2018, 6, 1, 4) < parkopen or datetime(2018, 6, 1, 4) >= parkclose:
+                if datetime.now() < parkopen or datetime.now() >= parkclose:
                     location_data = {}
 
                     for key in ride_data:
