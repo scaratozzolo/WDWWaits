@@ -151,7 +151,7 @@ def get_data():
                         json.dump(location_data, f)
 
                     os.system("git add checkpoints")
-                    os.system("git commit -m 'Newest data'")
+                    os.system('"git commit -m "Newest Data"')
                     os.system("git push")
 
                     NOW = datetime.now()
