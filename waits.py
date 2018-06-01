@@ -15,7 +15,7 @@ import os
 
 destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
 
-PAUSE_TIME = 15                                     #pause time between wait time gathering in minutes
+PAUSE_TIME = 10                                     #pause time between wait time gathering in minutes
 
 wdw = Destination("80007798")
 dl = Destination("80008297")
@@ -116,7 +116,7 @@ def get_data():
                             except:
                                 pass
 
-                print('{}. Finsihed at {}'.format(counter, datetime.now()))
+                print('Finsihed at {}'.format(datetime.now()))
                 counter += 1
 
                 with open('checkpoints/ridedata/ridedata-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
