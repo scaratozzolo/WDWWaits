@@ -150,9 +150,9 @@ def get_data():
                     with open('checkpoints/bylocation/ridedata-location-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
                         json.dump(location_data, f)
 
-                    os.system("git add checkpoints")
-                    os.system('"git commit -m "Newest Data"')
-                    os.system("git push")
+                    # os.system("git add checkpoints")
+                    # os.system('"git commit -m "Newest Data"')
+                    # os.system("git push")
 
                     NOW = datetime.now()
                     if TODAY.month == NOW.month and TODAY.day == NOW.day and NOW.hour < 7:  #may need to adjust hour
@@ -312,7 +312,7 @@ if __name__ == "__main__":
     # load_attractions(load_all_attractions())
     # print(park_hours(Park("336894"), 2018, 5, 26))
     # print(park_hours(Park("330339"), 2018, 5, 26))
-    print('Starting')
+    print('Starting WDWWaits')
 
     if not os.path.exists('checkpoints'):               #checks for checkpoints directory and creates it
         os.makedirs('checkpoints')
