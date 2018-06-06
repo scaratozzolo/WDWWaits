@@ -1,6 +1,6 @@
 # WDWWaits
 
-This is a script that records wait time data for attractions in Walt Disney World and Disneyland. It uses MouseTools, my Python wrapper for Disney's API.
+This is a script that records wait time data for attractions in Walt Disney World and Disneyland. It uses [MouseTools](https://github.com/scaratozzolo/MouseTools), my Python wrapper for Disney's API.
 
 I couldn't find any wait time data so I decided to make my own.
 
