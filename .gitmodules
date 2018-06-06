@@ -1,0 +1,3 @@
+[submodule "MouseTools"]
+	path = MouseTools
+	url = https://github.com/scaratozzolo/MouseTools.git
