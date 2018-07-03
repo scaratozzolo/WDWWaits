@@ -13,20 +13,30 @@ import time
 import json
 import os
 
+print('Starting WDWWaits')
+
 destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
 
-PAUSE_TIME = 10                                     #pause time between wait time gathering in minutes
+PAUSE_TIME = 5                                     #pause time between wait time gathering in minutes
 
-wdw = Destination("80007798")
-dl = Destination("80008297")
-parks_dict = {"WDW": wdw.getThemeParks() + wdw.getWaterParks(), "DL": dl.getThemeParks()}
+running = True
+while running:
+    try:
+        wdw = Destination(destinations["Walt Disney World Resort"])
+        dl = Destination(destinations["Disneyland Resort"])
+        print("Destinations loaded")
+        running = False
+    except:
+        pass
+
+parks_dict = {}
 
 def get_data():
 
     counter = 1
     while True:
         global parks_dict
-        parks_dict = {"WDW": wdw.getThemeParks() + wdw.getWaterParks(), "DL": dl.getThemeParks()}
+        parks_dict = {"WDW": wdw.getThemeParks(), "DL": dl.getThemeParks()}
 
         TODAY = datetime.today()
         TOMORROW = datetime.today() + timedelta(days=1)
@@ -37,18 +47,23 @@ def get_data():
 
         parkopen, parkclose = all_hours(TODAY.year, TODAY.month, TODAY.day)
 
-        raw_attractions = load_all_attractions()
+        raw_attractions, raw_entertainments = load_all_attractions()
 
         while True:
             try:
 
-                all_attractions = load_attractions(raw_attractions)
+                all_attractions, all_entertainments = load_attractions(raw_attractions, raw_entertainments)
 
                 attractions = []
+                entertainments = []
                 print("Checking for attractions with wait times...")
                 for attr in tqdm(all_attractions):
-                    if attr.checkForAttractionWaitTime():
+                    if attr.checkForAttractionWaitTime(): #update for new function
                         attractions.append(attr)
+                print("Checking for entertainments with wait times...")
+                for enter in tqdm(all_entertainments):
+                    if enter.checkForEntertainmentWaitTime(): #update for new function
+                        entertainments.append(enter)
 
                 rides = []
                 ids = []
@@ -65,7 +80,7 @@ def get_data():
                         if theme == park:
                             rides.append(attr.getAttractionName() + " - WDW")
                             ids.append(attr.getAttractionID())
-                            times.append(attr.getAttractionWaitTime())
+                            times.append(attr.getAttractionWaitTimeFromData())
                             locations.append(attr.getAncestorLand())
                             parks.append(park.getParkName())
 
@@ -73,8 +88,26 @@ def get_data():
                         if theme == park:
                             rides.append(attr.getAttractionName() + " - DL")
                             ids.append(attr.getAttractionID())
-                            times.append(attr.getAttractionWaitTime())
+                            times.append(attr.getAttractionWaitTimeFromData())
                             locations.append(attr.getAncestorLand())
+                            parks.append(park.getParkName())
+
+                for enter in tqdm(entertainments):
+                    park = enter.getAncestorThemePark()
+                    for theme in parks_dict["WDW"]:
+                        if theme == park:
+                            rides.append(enter.getEntertainmentName() + " - WDW")
+                            ids.append(enter.getEntertainmentID())
+                            times.append(enter.getEntertainmentWaitTime())
+                            locations.append(enter.getAncestorLand())
+                            parks.append(park.getParkName())
+
+                    for theme in parks_dict["DL"]:
+                        if theme == park:
+                            rides.append(enter.getEntertainmentName() + " - DL")
+                            ids.append(enter.getEntertainmentID())
+                            times.append(enter.getEntertainmentWaitTime())
+                            locations.append(enter.getAncestorLand())
                             parks.append(park.getParkName())
 
                 if len(rides) != 0:
@@ -82,7 +115,7 @@ def get_data():
                     for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
                         if ride in ride_data:
                             ride_data[ride]['Times'][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = times[i]
-                            ride_data[ride]["ID"] = ids[i]
+                            ride_data[ride]["ID"] = ids[i]      #check if two rides have the same ID, incase of name changes or such ex. slinky dog
                             ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
                             ride_data[ride]['Park'] = parks[i]
                         else:
@@ -162,7 +195,7 @@ def get_data():
 
                     print('All parks are closed at {}:{}. They will reopen at {}:{}.'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, formatDate(str(tomorrowopen.minute))))
                     time_to_open = tomorrowopen - datetime.now()
-                    for _ in tqdm(range(time_to_open.seconds)):
+                    for _ in tqdm(range(time_to_open.seconds - 900)):
                         time.sleep(1)
                     break
                 else:
@@ -255,27 +288,40 @@ def park_hours(park, year, month, day):
     return parkopen, parkclose
 
 def load_all_attractions():
-    print("Loading attractions...")
     raw_attractions = {}
-    wdw = Destination("80007798")
-    dl = Destination("80008297")
+    raw_entertainments = {}
+    wdw = Destination(destinations["Walt Disney World Resort"])
+    dl = Destination(destinations["Disneyland Resort"])
+    print("Loading attractions...")
     attractions = wdw.getAttractions() + dl.getAttractions()
+    print("Loading entertainments...")
+    entertainments = wdw.getEntertainments() + dl.getEntertainments()
 
-    for attr in attractions:
+    print("Sorting by park...")
+    for attr in tqdm(attractions):
         park = attr.getAncestorThemeParkID()
-        if park != None:
+        if park != None and park != "80007981" and park != "80007834": #removes the waterparks
             if park in raw_attractions:
                 raw_attractions[park].append(attr)
             else:
                 raw_attractions[park] = [attr]
 
-    return raw_attractions
+    for enter in tqdm(entertainments):
+        park = enter.getAncestorThemeParkID()
+        if park != None and park != "80007981" and park != "80007834": #removes the waterparks
+            if park in raw_entertainments:
+                raw_entertainments[park].append(enter)
+            else:
+                raw_entertainments[park] = [enter]
 
-def load_attractions(raw_attractions):
+    return raw_attractions, raw_entertainments
+
+def load_attractions(raw_attractions, raw_entertainments):
 
     DATE = datetime.today()
     # DATE = datetime(2018,5,28,7)
     attractions = []
+    entertainments = []
 
     open = 0
     for theme in tqdm(raw_attractions):
@@ -291,11 +337,12 @@ def load_attractions(raw_attractions):
 
             if datetime.now() >= parkopen and datetime.now() <= parkclose:
                 attractions += raw_attractions[theme]
+                entertainments += raw_entertainments[theme]
                 open+=1
         except:
             pass
     print("{} parks open right now...".format(open))
-    return attractions
+    return attractions, entertainments
 
 
 def formatDate(num):
@@ -312,7 +359,6 @@ if __name__ == "__main__":
     # load_attractions(load_all_attractions())
     # print(park_hours(Park("336894"), 2018, 5, 26))
     # print(park_hours(Park("330339"), 2018, 5, 26))
-    print('Starting WDWWaits')
 
     if not os.path.exists('checkpoints'):               #checks for checkpoints directory and creates it
         os.makedirs('checkpoints')
@@ -337,6 +383,6 @@ if __name__ == "__main__":
             print("Couldn't get new data")
             time.sleep(PAUSE_TIME*60)
         except Exception as e:
-            # print(e)
+            print(e)
             print("Attraction Error")
             print("Restarting...")
