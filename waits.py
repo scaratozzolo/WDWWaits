@@ -205,7 +205,7 @@ def get_data():
                         time.sleep(1)
                     break
                 else:
-                    for _ in eval("{}(range(PAUSE_TIME*60))".foramt(bar)):
+                    for _ in eval("{}(range(PAUSE_TIME*60))".format(bar)):
                         time.sleep(1)
             except Exception as e:
                 print(e)
