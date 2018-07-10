@@ -13,6 +13,12 @@ import time
 import json
 import os
 
+PROGBAR = False
+if PROGBAR:
+    bar = "tqdm"
+else:
+    bar = ""
+
 print('Starting WDWWaits')
 
 destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
@@ -57,11 +63,11 @@ def get_data():
                 attractions = []
                 entertainments = []
                 print("Checking for attractions with wait times...")
-                for attr in tqdm(all_attractions):
+                for attr in eval("{}(all_attractions)".format(bar)):                                                  #TQDM
                     if attr.checkForAttractionWaitTime(): #update for new function
                         attractions.append(attr)
                 print("Checking for entertainments with wait times...")
-                for enter in tqdm(all_entertainments):
+                for enter in eval("{}(all_entertainments)".format(bar)):                                              #TQDM
                     if enter.checkForEntertainmentWaitTime(): #update for new function
                         entertainments.append(enter)
 
@@ -74,7 +80,7 @@ def get_data():
                 NOW = datetime.now()
 
                 print("Getting wait times...")
-                for attr in tqdm(attractions):
+                for attr in eval("{}(attractions)".format(bar)):                                                      #TQDM
                     park = attr.getAncestorThemePark()
                     for theme in parks_dict["WDW"]:
                         if theme == park:
@@ -92,7 +98,7 @@ def get_data():
                             locations.append(attr.getAncestorLand())
                             parks.append(park.getParkName())
 
-                for enter in tqdm(entertainments):
+                for enter in eval("{}(entertainments)".format(bar)):                                                  #TQDM
                     park = enter.getAncestorThemePark()
                     for theme in parks_dict["WDW"]:
                         if theme == park:
@@ -149,7 +155,7 @@ def get_data():
                             except:
                                 pass
 
-                print('Finsihed at {}'.format(datetime.now()))
+                print('Finished at {}'.format(datetime.now()))
                 counter += 1
 
                 with open('checkpoints/ridedata/ridedata-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
@@ -195,11 +201,11 @@ def get_data():
 
                     print('All parks are closed at {}:{}. They will reopen at {}:{}.'.format(datetime.now().hour, formatDate(str(datetime.now().minute)), tomorrowopen.hour, formatDate(str(tomorrowopen.minute))))
                     time_to_open = tomorrowopen - datetime.now()
-                    for _ in tqdm(range(time_to_open.seconds - 900)):
+                    for _ in eval("{}(range(time_to_open.seconds - 900))".format(bar)):
                         time.sleep(1)
                     break
                 else:
-                    for _ in tqdm(range(PAUSE_TIME*60)):
+                    for _ in eval("{}(range(PAUSE_TIME*60))".foramt(bar)):
                         time.sleep(1)
             except Exception as e:
                 print(e)
@@ -214,7 +220,7 @@ def all_hours(year, month, day):
 
     parks = parks_dict["WDW"] + parks_dict["DL"]
 
-    for park in tqdm(parks):
+    for park in eval("{}(parks)".format(bar)):
         for item in parks_dict["WDW"]:
             if park == item:
                 hours = park.getParkHours(year, month, day)
@@ -292,13 +298,13 @@ def load_all_attractions():
     raw_entertainments = {}
     wdw = Destination(destinations["Walt Disney World Resort"])
     dl = Destination(destinations["Disneyland Resort"])
-    print("Loading attractions...")
+    print("Loading attractions...")                                             #Get IDs and load the objects here for better manipulation
     attractions = wdw.getAttractions() + dl.getAttractions()
-    print("Loading entertainments...")
+    print("Loading entertainments...")                                          #Get IDs and load the objects here for better manipulation
     entertainments = wdw.getEntertainments() + dl.getEntertainments()
 
-    print("Sorting by park...")
-    for attr in tqdm(attractions):
+    print("Sorting {} attractions and entertainments by park...".format(len(attractions)+len(entertainments)))
+    for attr in eval("{}(attractions)".format(bar)):
         park = attr.getAncestorThemeParkID()
         if park != None and park != "80007981" and park != "80007834": #removes the waterparks
             if park in raw_attractions:
@@ -306,7 +312,7 @@ def load_all_attractions():
             else:
                 raw_attractions[park] = [attr]
 
-    for enter in tqdm(entertainments):
+    for enter in eval("{}(entertainments)".format(bar)):
         park = enter.getAncestorThemeParkID()
         if park != None and park != "80007981" and park != "80007834": #removes the waterparks
             if park in raw_entertainments:
@@ -324,7 +330,7 @@ def load_attractions(raw_attractions, raw_entertainments):
     entertainments = []
 
     open = 0
-    for theme in tqdm(raw_attractions):
+    for theme in eval("{}(raw_attractions)".format(bar)):
         try:
             park = Park(theme)
             if DATE.hour >= 7:
