@@ -19,7 +19,30 @@ if PROGBAR:
 else:
     bar = ""
 
-print('Starting WDWWaits')
+print("""\nStarting WDWWaits
+
+                        .d88888888bo.
+                      .d8888888888888b.
+                      8888888888888888b
+                      888888888888888888
+                      888888888888888888
+                       Y8888888888888888
+                 ,od888888888888888888P
+              .'`Y8P'```'Y8888888888P'
+            .'_   `  _     'Y88888888b
+           /  _`    _ `      Y88888888b   ____
+        _  | /  \  /  \      8888888888.d888888b.
+       d8b | | /|  | /|      8888888888d8888888888b
+      8888_\ \_|/  \_|/      d888888888888888888888b
+      .Y8P  `'-.            d88888888888888888888888
+     /          `          `      `Y8888888888888888
+     |                        __    888888888888888P
+      \                       / `   dPY8888888888P'
+       '._                  .'     .'  `Y888888P`
+          `"'-.,__    ___.-'    .-'
+              `-._````  __..--'`
+                  ``````
+""")
 
 destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
 
@@ -155,13 +178,13 @@ def get_data():
                             except:
                                 pass
 
-                print('Finished at {}'.format(datetime.now()))
+                print('Finished at {}\n'.format(datetime.now()))
                 counter += 1
 
                 with open('checkpoints/ridedata/ridedata-{}-{}-{}.json'.format(TODAY.year, formatDate(str(TODAY.month)), formatDate(str(TODAY.day))), 'w') as f:       #writes ride_data to json file
                     json.dump(ride_data, f)
 
-                # if datetime.now() < parkopen or datetime.now() >= parkclose:
+
                 if datetime.now() < parkopen or datetime.now() >= parkclose:
                     location_data = {}
 
@@ -389,6 +412,6 @@ if __name__ == "__main__":
             print("Couldn't get new data")
             time.sleep(PAUSE_TIME*60)
         except Exception as e:
-            print(e)
+            print("\n", e)
             print("Attraction Error")
             print("Restarting...")
