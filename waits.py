@@ -1,13 +1,18 @@
 import sys
-sys.path.insert(0, "MouseTools")
+try:
+    from MouseTools.auth import getHeaders
+except:
+    print("You must pip install MouseTools.")
+    sys.exit()
 
 from MouseTools.auth import getHeaders
-from MouseTools.destinations import Destination
+from MouseTools.destinations import Destination, WDW_ID, DL_ID
 from MouseTools.parks import Park
 from MouseTools.attractions import Attraction
 from MouseTools.entertainments import Entertainment
 from tqdm import tqdm
 from datetime import datetime, timedelta
+from secretkey import weather_key
 import requests
 import time
 import json
@@ -20,7 +25,6 @@ else:
     bar = ""
 
 print("""\nStarting WDWWaits
-
                         .d88888888bo.
                       .d8888888888888b.
                       8888888888888888b
@@ -42,17 +46,17 @@ print("""\nStarting WDWWaits
           `"'-.,__    ___.-'    .-'
               `-._````  __..--'`
                   ``````
+Weather Powered by Dark Sky https://darksky.net/poweredby/
 """)
 
-destinations = {"Walt Disney World Resort" : "80007798", "Disneyland Resort" : "80008297"}
 
 PAUSE_TIME = 5                                     #pause time between wait time gathering in minutes
 
 running = True
 while running:
     try:
-        wdw = Destination(destinations["Walt Disney World Resort"])
-        dl = Destination(destinations["Disneyland Resort"])
+        wdw = Destination(WDW_ID)
+        dl = Destination(DL_ID)
         print("Destinations loaded")
         running = False
     except:
@@ -86,12 +90,12 @@ def get_data():
                 attractions = []
                 entertainments = []
                 print("Checking for attractions with wait times...")
-                for attr in eval("{}(all_attractions)".format(bar)):                                                  #TQDM
-                    if attr.checkForAttractionWaitTime(): #update for new function
+                for attr in eval("{}(all_attractions)".format(bar)):
+                    if attr.checkForAttractionWaitTime():
                         attractions.append(attr)
                 print("Checking for entertainments with wait times...")
-                for enter in eval("{}(all_entertainments)".format(bar)):                                              #TQDM
-                    if enter.checkForEntertainmentWaitTime(): #update for new function
+                for enter in eval("{}(all_entertainments)".format(bar)):
+                    if enter.checkForEntertainmentWaitTime():
                         entertainments.append(enter)
 
                 rides = []
@@ -99,11 +103,12 @@ def get_data():
                 times = []
                 locations = []
                 parks = []
+                coords = []
 
                 NOW = datetime.now()
 
                 print("Getting wait times...")
-                for attr in eval("{}(attractions)".format(bar)):                                                      #TQDM
+                for attr in eval("{}(attractions)".format(bar)):
                     park = attr.getAncestorThemePark()
                     for theme in parks_dict["WDW"]:
                         if theme == park:
@@ -112,6 +117,7 @@ def get_data():
                             times.append(attr.getAttractionWaitTimeFromData())
                             locations.append(attr.getAncestorLand())
                             parks.append(park.getParkName())
+                            coords.append(attr.getAttractionCoordinates())
 
                     for theme in parks_dict["DL"]:
                         if theme == park:
@@ -120,8 +126,9 @@ def get_data():
                             times.append(attr.getAttractionWaitTimeFromData())
                             locations.append(attr.getAncestorLand())
                             parks.append(park.getParkName())
+                            coords.append(attr.getAttractionCoordinates())
 
-                for enter in eval("{}(entertainments)".format(bar)):                                                  #TQDM
+                for enter in eval("{}(entertainments)".format(bar)):
                     park = enter.getAncestorThemePark()
                     for theme in parks_dict["WDW"]:
                         if theme == park:
@@ -130,6 +137,7 @@ def get_data():
                             times.append(enter.getEntertainmentWaitTime())
                             locations.append(enter.getAncestorLand())
                             parks.append(park.getParkName())
+                            coords.append(enter.getEntertainmentCoordinates())
 
                     for theme in parks_dict["DL"]:
                         if theme == park:
@@ -138,45 +146,41 @@ def get_data():
                             times.append(enter.getEntertainmentWaitTime())
                             locations.append(enter.getAncestorLand())
                             parks.append(park.getParkName())
+                            coords.append(enter.getEntertainmentCoordinates())
 
                 if len(rides) != 0:
                     print('Adding new data...')
+                    ride_data["last_updated"] = str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))
+
+                    orlando_data = requests.get("https://api.darksky.net/forecast/{}/28.388195,-81.569324?exclude=hourly,daily,flags".format(weather_key)).json()
+                    anaheim_data = requests.get("https://api.darksky.net/forecast/{}/33.808666,-117.918955?exclude=hourly,daily,flags".format(weather_key)).json()
+
+                    if "Orlando" in ride_data:
+                        ride_data["Orlando"][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = orlando_data
+                    else:
+                        ride_data["Orlando"] = {}
+                        ride_data["Orlando"][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = orlando_data
+
+                    if "Anaheim" in ride_data:
+                        ride_data["Anaheim"][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = anaheim_data
+                    else:
+                        ride_data["Anaheim"] = {}
+                        ride_data["Anaheim"][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = anaheim_data
+
                     for i, ride in enumerate(rides):            #adds new times and location to ride dictionary...location is added in case its a new location or previously was none
                         if ride in ride_data:
                             ride_data[ride]['Times'][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = times[i]
                             ride_data[ride]["ID"] = ids[i]      #check if two rides have the same ID, incase of name changes or such ex. slinky dog
                             ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
                             ride_data[ride]['Park'] = parks[i]
+                            ride_data[ride]['Coordinates'] = coords[i]
                         else:
                             ride_data[ride] = {'Times' : {}}
                             ride_data[ride]["ID"] = ids[i]
                             ride_data[ride]['Times'][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = times[i]
                             ride_data[ride]['Location'] = locations[i].replace(u"\u2013", "-")
                             ride_data[ride]['Park'] = parks[i]
-
-                    weather_data = requests.get("https://api.openweathermap.org/data/2.5/group?id=4167147,5323810&units=imperial&appid=07e91d416dbdfcbd7d7ab9c8096ac687").json()
-                    for entry in weather_data["list"]:
-                        if entry["name"] in ride_data:
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = {}
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["weather"] = entry["weather"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["main"] = entry["main"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["wind"] = entry["wind"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["clouds"] = entry["clouds"]
-                            try:
-                                ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["rain"] = entry["rain"]
-                            except:
-                                pass
-                        else:
-                            ride_data[entry["name"]] = {}
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))] = {}
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["weather"] = entry["weather"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["main"] = entry["main"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["wind"] = entry["wind"]
-                            ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["clouds"] = entry["clouds"]
-                            try:
-                                ride_data[entry["name"]][str(datetime(NOW.year, NOW.month, NOW.day, NOW.hour, NOW.minute))]["rain"] = entry["rain"]
-                            except:
-                                pass
+                            ride_data[ride]['Coordinates'] = coords[i]
 
                 print('Finished at {}\n'.format(datetime.now()))
                 counter += 1
@@ -189,23 +193,26 @@ def get_data():
                     location_data = {}
 
                     for key in ride_data:
-                        if key != "Orlando" and key != "Anaheim":
+                        if key != "Orlando" and key != "Anaheim" and key != "last_updated":
                             if ride_data[key]["Park"] in location_data:
                                 if ride_data[key]['Location'] in location_data[ride_data[key]["Park"]]:
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['ID'] = ride_data[key]['ID']
+                                    location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Coordinates'] = ride_data[key]['Coordinates']
                                 else:
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]] = {}
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['ID'] = ride_data[key]['ID']
+                                    location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Coordinates'] = ride_data[key]['Coordinates']
                             else:
                                 location_data[ride_data[key]["Park"]] = {}
                                 location_data[ride_data[key]["Park"]][ride_data[key]["Location"]] = {}
                                 location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
                                 location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Times'] = ride_data[key]['Times']
                                 location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['ID'] = ride_data[key]['ID']
+                                location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key]['Coordinates'] = ride_data[key]['Coordinates']
                         else:
                             location_data[key] = ride_data[key]
 
@@ -319,8 +326,8 @@ def park_hours(park, year, month, day):
 def load_all_attractions():
     raw_attractions = {}
     raw_entertainments = {}
-    wdw = Destination(destinations["Walt Disney World Resort"])
-    dl = Destination(destinations["Disneyland Resort"])
+    wdw = Destination(WDW_ID)
+    dl = Destination(DL_ID)
     print("Loading attractions...")                                             #Get IDs and load the objects here for better manipulation
     attractions = wdw.getAttractions() + dl.getAttractions()
     print("Loading entertainments...")                                          #Get IDs and load the objects here for better manipulation
