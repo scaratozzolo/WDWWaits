@@ -1,10 +1,14 @@
 import sys
+sys.path.insert(0, "C:\Python Workspace\MouseTools")
 try:
-    from MouseTools.auth import getHeaders
+    import MouseTools
+    if MouseTools.__version__ < "1.1.0":
+        print("You must upgrade MouseTools. Minimum v1.1.0")
+        sys.exit()
 except:
-    print("You must pip install MouseTools.")
+    print("You must pip install MouseTools. Minimum v1.1.0")
     sys.exit()
-
+from MouseTools.auth import getHeaders
 from MouseTools.auth import getHeaders
 from MouseTools.destinations import Destination, WDW_ID, DL_ID
 from MouseTools.parks import Park
@@ -24,7 +28,7 @@ if PROGBAR:
 else:
     bar = ""
 
-print("""\nStarting WDWWaits
+print("""
                         .d88888888bo.
                       .d8888888888888b.
                       8888888888888888b
@@ -46,6 +50,7 @@ print("""\nStarting WDWWaits
           `"'-.,__    ___.-'    .-'
               `-._````  __..--'`
                   ``````
+Starting WDWWaits
 Weather Powered by Dark Sky https://darksky.net/poweredby/
 """)
 
@@ -79,6 +84,34 @@ def get_data():
             ride_data = {}
 
         parkopen, parkclose = all_hours(TODAY.year, TODAY.month, TODAY.day)
+        ride_data["Hours"] = {}
+        ride_data["Hours"]["Open"] = str(parkopen)
+        ride_data["Hours"]["Close"] = str(parkclose)
+        for key in parks_dict:
+            if key == "WDW":
+                for park in parks_dict[key]:
+                    opopen, opclose, magopen, magclose = park.getTodayParkHours()
+                    ride_data["Hours"][park.getParkName()] = {}
+                    ride_data["Hours"][park.getParkName()]["Operating_Open"] = str(opopen)
+                    ride_data["Hours"][park.getParkName()]["Operating_Close"] = str(opclose)
+                    ride_data["Hours"][park.getParkName()]["Magic_Open"] = str(magopen)
+                    ride_data["Hours"][park.getParkName()]["Magic_Close"] = str(magclose)
+            elif key == "DL":
+                for park in parks_dict[key]:
+                    opopen, opclose, magopen, magclose = park.getTodayParkHours()
+                    ride_data["Hours"][park.getParkName()] = {}
+                    ride_data["Hours"][park.getParkName()]["Operating_Open"] = str(opopen + timedelta(hours=3))
+                    ride_data["Hours"][park.getParkName()]["Operating_Close"] = str(opclose + timedelta(hours=3))
+                    try:
+                        ride_data["Hours"][park.getParkName()]["Magic_Open"] = str(magopen + timedelta(hours=3))
+                    except:
+                        ride_data["Hours"][park.getParkName()]["Magic_Open"] = str(None)
+                    try:
+                        ride_data["Hours"][park.getParkName()]["Magic_Close"] = str(magclose + timedelta(hours=3))
+                    except:
+                        ride_data["Hours"][park.getParkName()]["Magic_Close"] = str(None)
+
+
 
         raw_attractions, raw_entertainments = load_all_attractions()
 
@@ -193,7 +226,7 @@ def get_data():
                     location_data = {}
 
                     for key in ride_data:
-                        if key != "Orlando" and key != "Anaheim" and key != "last_updated":
+                        if key not in ("Orlando", "Anaheim", "last_updated", "Hours"):
                             if ride_data[key]["Park"] in location_data:
                                 if ride_data[key]['Location'] in location_data[ride_data[key]["Park"]]:
                                     location_data[ride_data[key]["Park"]][ride_data[key]["Location"]][key] = {}
