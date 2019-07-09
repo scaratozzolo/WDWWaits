@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "C:\Python Workspace\MouseTools")
+# sys.path.insert(0, "D:\Program Projects\MouseTools")
 try:
     import MouseTools
     if MouseTools.__version__ < "1.1.0":
