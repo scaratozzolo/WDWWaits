@@ -1,7 +1,7 @@
 import sys
 sys.path.append('D:/Program Projects/MouseTools/')
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from secretkey import weather_key
 import MouseTools
 import sqlite3
@@ -17,9 +17,16 @@ class Waits:
 
         self.DB_NAME = "waits.db"
         self.PAUSE_TIME = 300
+        self.today = str(datetime.today()).split(" ")[0]
 
         self.MouseTools_db = MouseTools.DisneyDatabase()
         self.dests = [MouseTools.Destination(80007798, False), MouseTools.Destination(80008297, False)]
+        self.parks = self.dests[0].get_park_ids() + self.dests[1].get_park_ids()
+        self.evs = self.dests[0].get_entertainment_venue_ids() + self.dests[1].get_entertainment_venue_ids()
+
+        for id in self.parks + self.evs:
+            self.create_park_hours_table(id)
+        self.update_park_hours()
 
         self.create_details_table()
         self.create_weather_table()
@@ -30,6 +37,10 @@ class Waits:
 
         while True:
             try:
+                if self.today < str(datetime.today()).split(" ")[0]:
+                    self.today = str(datetime.today()).split(" ")[0]
+                    self.update_park_hours()
+
                 self.update()
                 time.sleep(self.PAUSE_TIME)
             except Exception as e:
@@ -46,6 +57,15 @@ class Waits:
         c = conn.cursor()
 
         c.execute("CREATE TABLE IF NOT EXISTS details (id TEXT PRIMARY KEY, name TEXT, last_pull TEXT, last_updated TEXT, wait_time TEXT, status TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT)")
+
+        conn.commit()
+        conn.close()
+
+    def create_park_hours_table(self, id):
+        conn = sqlite3.connect(self.DB_NAME)
+        c = conn.cursor()
+
+        c.execute("CREATE TABLE IF NOT EXISTS park_{} (date TEXT PRIMARY KEY, operating_open TEXT, operating_close TEXT, extra_magic_open TEXT, extra_magic_close TEXT, status TEXT)".format(id))
 
         conn.commit()
         conn.close()
@@ -89,8 +109,64 @@ class Waits:
         conn_mt.commit()
         conn_mt.close()
 
-        print("Update successful, time: " + str(current_timestamp))
+        print("Update waits successful, time: " + str(datetime.now()))
 
+    def update_park_hours(self):
+
+        conn = sqlite3.connect(self.DB_NAME)
+        c = conn.cursor()
+
+        for id in self.parks:
+            park = MouseTools.Park(id)
+
+            operating_open, operating_close, extra_magic_open, extra_magic_close = park.get_hours()
+            try:
+                operating_open = operating_open.timestamp()
+            except:
+                pass
+            try:
+                operating_close = operating_close.timestamp()
+            except:
+                pass
+            try:
+                extra_magic_open = extra_magic_open.timestamp()
+            except:
+                pass
+            try:
+                extra_magic_close = extra_magic_close.timestamp()
+            except:
+                pass
+
+            c.execute("INSERT OR REPLACE INTO park_{} (date, operating_open, operating_close, extra_magic_open, extra_magic_close, status) VALUES (?, ?, ?, ?, ?, ?)".format(id), (self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, park.get_status()))
+
+        for id in self.evs:
+            ev = MouseTools.EntertainmentVenue(id)
+
+            operating_open, operating_close, extra_magic_open, extra_magic_close = ev.get_hours()
+            try:
+                operating_open = operating_open.timestamp()
+            except:
+                pass
+            try:
+                operating_close = operating_close.timestamp()
+            except:
+                pass
+            try:
+                extra_magic_open = extra_magic_open.timestamp()
+            except:
+                pass
+            try:
+                extra_magic_close = extra_magic_close.timestamp()
+            except:
+                pass
+
+            c.execute("INSERT OR REPLACE INTO park_{} (date, operating_open, operating_close, extra_magic_open, extra_magic_close, status) VALUES (?, ?, ?, ?, ?, ?)".format(id), (self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, ev.get_status()))
+
+
+        conn.commit()
+        conn.close()
+
+        print("Update hours successful, time: " + str(datetime.now()))
 
 if __name__ == '__main__':
 
