@@ -1,6 +1,3 @@
-import sys
-sys.path.append('D:/Program Projects/MouseTools/')
-
 from datetime import datetime, timedelta
 from secretkey import weather_key
 import MouseTools
@@ -56,7 +53,7 @@ class Waits:
         conn = sqlite3.connect(self.DB_NAME)
         c = conn.cursor()
 
-        c.execute("CREATE TABLE IF NOT EXISTS details (id TEXT PRIMARY KEY, name TEXT, last_pull TEXT, last_updated TEXT, wait_time TEXT, status TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS details (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, last_pull TEXT, last_updated TEXT, wait_time TEXT, status TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT)")
 
         conn.commit()
         conn.close()
@@ -96,8 +93,8 @@ class Waits:
                 self.create_wait_table(id)
 
                 self.c.execute("INSERT INTO id_{} (last_pull, wait_time, status) VALUES (?, ?, ?)".format(id), (current_timestamp, body['wait_time'], body['status'],))
-                park_id, land_id, ev_id = c_mt.execute("SELECT park_id, land_id, entertainment_venue_id FROM facilities WHERE id = ?", (id,)).fetchone()
-                self.c.execute("INSERT OR REPLACE INTO details (id, name, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id))
+                park_id, land_id, ev_id, entityType = c_mt.execute("SELECT park_id, land_id, entertainment_venue_id, entityType FROM facilities WHERE id = ?", (id,)).fetchone()
+                self.c.execute("INSERT OR REPLACE INTO details (id, name, entityType, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], entityType, current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id))
 
         orlando_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=28.388195&lon=-81.569324&units=imperial&appid={}".format(weather_key)).json()
         anaheim_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=33.808666&lon=-117.918955&units=imperial&appid={}".format(weather_key)).json()
