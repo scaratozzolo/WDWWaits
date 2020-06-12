@@ -44,12 +44,6 @@ class Waits:
             except Exception as e:
                 print(e)
 
-
-    def create_wait_table(self, id):
-
-        self.c.execute("CREATE TABLE IF NOT EXISTS id_{} (last_pull TEXT PRIMARY KEY, wait_time TEXT, status TEXT)".format(id))
-
-
     def create_details_table(self):
         conn = sqlite3.connect(self.DB_NAME)
         c = conn.cursor()
@@ -89,7 +83,7 @@ class Waits:
 
     def update(self):
         conn = sqlite3.connect(self.DB_NAME)
-        self.c = conn.cursor()
+        c = conn.cursor()
 
         conn_mt = sqlite3.connect(self.MouseTools_db.db_path)
         c_mt = conn_mt.cursor()
@@ -100,18 +94,18 @@ class Waits:
             current_timestamp = datetime.now().timestamp()
 
             for id, body in wait_times.items():
-                self.create_wait_table(id)
+                c.execute("CREATE TABLE IF NOT EXISTS id_{} (last_pull TEXT PRIMARY KEY, wait_time TEXT, status TEXT)".format(id))
 
-                self.c.execute("INSERT INTO id_{} (last_pull, wait_time, status) VALUES (?, ?, ?)".format(id), (current_timestamp, body['wait_time'], body['status'],))
+                c.execute("INSERT INTO id_{} (last_pull, wait_time, status) VALUES (?, ?, ?)".format(id), (current_timestamp, body['wait_time'], body['status'],))
                 park_id, land_id, ev_id, entityType, doc_id = c_mt.execute("SELECT park_id, land_id, entertainment_venue_id, entityType, doc_id FROM facilities WHERE id = ?", (id,)).fetchone()
                 facility_body = json.loads(c_mt.execute("SELECT body FROM sync WHERE id = ?", (doc_id,)).fetchone()[0])
                 coordinates = {'latitude': facility_body['latitude'], 'longitude': facility_body['longitude']}
-                self.c.execute("INSERT OR REPLACE INTO details (id, name, entityType, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], entityType, current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id, json.dumps(coordinates),))
+                c.execute("INSERT OR REPLACE INTO details (id, name, entityType, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], entityType, current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id, json.dumps(coordinates),))
 
         orlando_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=28.388195&lon=-81.569324&units=imperial&appid={}".format(weather_key)).json()
         anaheim_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=33.808666&lon=-117.918955&units=imperial&appid={}".format(weather_key)).json()
-        self.c.execute("INSERT INTO weather_orlando (last_pull, weather, weather_main, weather_decription, temp, feels_like) VALUES (?, ?, ?, ?, ?, ?)", (current_timestamp, json.dumps(orlando_weather), orlando_weather['weather'][0]['main'], orlando_weather['weather'][0]['description'], orlando_weather['main']['temp'], orlando_weather['main']['feels_like'],))
-        self.c.execute("INSERT INTO weather_anaheim (last_pull, weather, weather_main, weather_decription, temp, feels_like) VALUES (?, ?, ?, ?, ?, ?)", (current_timestamp, json.dumps(anaheim_weather), anaheim_weather['weather'][0]['main'], anaheim_weather['weather'][0]['description'], anaheim_weather['main']['temp'], anaheim_weather['main']['feels_like'],))
+        c.execute("INSERT INTO weather_orlando (last_pull, weather, weather_main, weather_decription, temp, feels_like) VALUES (?, ?, ?, ?, ?, ?)", (current_timestamp, json.dumps(orlando_weather), orlando_weather['weather'][0]['main'], orlando_weather['weather'][0]['description'], orlando_weather['main']['temp'], orlando_weather['main']['feels_like'],))
+        c.execute("INSERT INTO weather_anaheim (last_pull, weather, weather_main, weather_decription, temp, feels_like) VALUES (?, ?, ?, ?, ?, ?)", (current_timestamp, json.dumps(anaheim_weather), anaheim_weather['weather'][0]['main'], anaheim_weather['weather'][0]['description'], anaheim_weather['main']['temp'], anaheim_weather['main']['feels_like'],))
 
         conn.commit()
         conn.close()
