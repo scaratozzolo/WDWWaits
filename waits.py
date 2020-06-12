@@ -53,7 +53,7 @@ class Waits:
         conn = sqlite3.connect(self.DB_NAME)
         c = conn.cursor()
 
-        c.execute("CREATE TABLE IF NOT EXISTS details (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, last_pull TEXT, last_updated TEXT, wait_time TEXT, status TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS details (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, last_pull TEXT, last_updated TEXT, wait_time TEXT, status TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT, coordinates TEXT)")
 
         conn.commit()
         conn.close()
@@ -62,7 +62,7 @@ class Waits:
         conn = sqlite3.connect(self.DB_NAME)
         c = conn.cursor()
 
-        c.execute("CREATE TABLE IF NOT EXISTS parks (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, last_pull TEXT, operating_open TEXT, operating_close TEXT, extra_magic_open TEXT, extra_magic_close TEXT, status TEXT, dest_id TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS parks (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, last_pull TEXT, operating_open TEXT, operating_close TEXT, extra_magic_open TEXT, extra_magic_close TEXT, status TEXT, dest_id TEXT, coordinates TEXT)")
 
         conn.commit()
         conn.close()
@@ -71,7 +71,7 @@ class Waits:
         conn = sqlite3.connect(self.DB_NAME)
         c = conn.cursor()
 
-        c.execute("CREATE TABLE IF NOT EXISTS schedules (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, subType TEXT, last_pull TEXT, schedule TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT, primary_location_id TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS schedules (id TEXT PRIMARY KEY, name TEXT, entityType TEXT, subType TEXT, last_pull TEXT, schedule TEXT, dest_id TEXT, park_id TEXT, land_id TEXT, entertainment_venue_id TEXT, primary_location_id TEXT, coordinates TEXT)")
 
         conn.commit()
         conn.close()
@@ -102,8 +102,10 @@ class Waits:
                 self.create_wait_table(id)
 
                 self.c.execute("INSERT INTO id_{} (last_pull, wait_time, status) VALUES (?, ?, ?)".format(id), (current_timestamp, body['wait_time'], body['status'],))
-                park_id, land_id, ev_id, entityType = c_mt.execute("SELECT park_id, land_id, entertainment_venue_id, entityType FROM facilities WHERE id = ?", (id,)).fetchone()
-                self.c.execute("INSERT OR REPLACE INTO details (id, name, entityType, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], entityType, current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id))
+                park_id, land_id, ev_id, entityType, doc_id = c_mt.execute("SELECT park_id, land_id, entertainment_venue_id, entityType, doc_id FROM facilities WHERE id = ?", (id,)).fetchone()
+                facility_body = json.loads(c_mt.execute("SELECT body FROM sync WHERE id = ?", (doc_id,)).fetchone()[0])
+                coordinates = {'latitude': facility_body['latitude'], 'longitude': facility_body['longitude']}
+                self.c.execute("INSERT OR REPLACE INTO details (id, name, entityType, last_pull, last_updated, wait_time, status, dest_id, park_id, land_id, entertainment_venue_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, body['name'], entityType, current_timestamp, body["last_updated"].timestamp(), body["wait_time"], body["status"], dest.get_id(), park_id, land_id, ev_id, json.dumps(coordinates),))
 
         orlando_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=28.388195&lon=-81.569324&units=imperial&appid={}".format(weather_key)).json()
         anaheim_weather = requests.get("https://api.openweathermap.org/data/2.5/weather?lat=33.808666&lon=-117.918955&units=imperial&appid={}".format(weather_key)).json()
@@ -146,7 +148,7 @@ class Waits:
                 pass
 
             c.execute("INSERT OR REPLACE INTO park_{} (date, operating_open, operating_close, extra_magic_open, extra_magic_close, status) VALUES (?, ?, ?, ?, ?, ?)".format(id), (self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, park.get_status()))
-            c.execute("INSERT OR REPLACE INTO parks (id, name, entityType, last_pull, operating_open, operating_close, extra_magic_open, extra_magic_close, status, dest_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, park.get_name(), park.get_entityType(), self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, park.get_status(), park.get_ancestor_destination_id(),))
+            c.execute("INSERT OR REPLACE INTO parks (id, name, entityType, last_pull, operating_open, operating_close, extra_magic_open, extra_magic_close, status, dest_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, park.get_name(), park.get_entityType(), self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, park.get_status(), park.get_ancestor_destination_id(), json.dumps(park.get_coordinates()),))
 
         evs = self.dests[0].get_entertainment_venue_ids() + self.dests[1].get_entertainment_venue_ids()
         for id in evs:
@@ -172,7 +174,7 @@ class Waits:
                 pass
 
             c.execute("INSERT OR REPLACE INTO park_{} (date, operating_open, operating_close, extra_magic_open, extra_magic_close, status) VALUES (?, ?, ?, ?, ?, ?)".format(id), (self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, ev.get_status()))
-            c.execute("INSERT OR REPLACE INTO parks (id, name, entityType, last_pull, operating_open, operating_close, extra_magic_open, extra_magic_close, status, dest_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, ev.get_name(), ev.get_entityType(), self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, ev.get_status(), ev.get_ancestor_destination_id(),))
+            c.execute("INSERT OR REPLACE INTO parks (id, name, entityType, last_pull, operating_open, operating_close, extra_magic_open, extra_magic_close, status, dest_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, ev.get_name(), ev.get_entityType(), self.today, operating_open, operating_close, extra_magic_open, extra_magic_close, ev.get_status(), ev.get_ancestor_destination_id(), json.dumps(ev.get_coordinates()),))
 
         conn.commit()
         conn.close()
@@ -193,7 +195,7 @@ class Waits:
                     enter = MouseTools.Entertainment(id)
                     c.execute("CREATE TABLE IF NOT EXISTS schedule_{} (date TEXT PRIMARY KEY, schedule TEXT, duration TEXT)".format(id))
                     c.execute("INSERT INTO schedule_{} (date, schedule, duration) VALUES (?, ?, ?)".format(id), (self.today, json.dumps(schedule), enter.get_duration_seconds(),))
-                    c.execute("INSERT OR REPLACE INTO schedules (id, name, entityType, subType, last_pull, schedule, dest_id, park_id, land_id, entertainment_venue_id, primary_location_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, enter.get_name(), enter.get_entityType(), enter.get_subType(), self.today, json.dumps(schedule), enter.get_ancestor_destination_id(), enter.get_ancestor_park_id(), enter.get_ancestor_land_id(), enter.get_ancestor_entertainment_venue_id(), json.dumps(enter.get_related_location_ids()),))
+                    c.execute("INSERT OR REPLACE INTO schedules (id, name, entityType, subType, last_pull, schedule, dest_id, park_id, land_id, entertainment_venue_id, primary_location_id, coordinates) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (id, enter.get_name(), enter.get_entityType(), enter.get_subType(), self.today, json.dumps(schedule), enter.get_ancestor_destination_id(), enter.get_ancestor_park_id(), enter.get_ancestor_land_id(), enter.get_ancestor_entertainment_venue_id(), json.dumps(enter.get_related_location_ids()), json.dumps(enter.get_coordinates()),))
             except Exception as e:
                 pass
                 print(e)
