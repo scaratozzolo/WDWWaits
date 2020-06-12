@@ -35,6 +35,7 @@ class Waits:
             try:
                 if self.today < str(datetime.today()).split(" ")[0]:
                     self.today = str(datetime.today()).split(" ")[0]
+                    self.MouseTools_db.sync_database()
                     self.update_park_hours()
                     self.update_entertainment_schedules()
 
